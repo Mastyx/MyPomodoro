@@ -38,18 +38,26 @@ mod timer;
 //
 //
 
-struct NomeApplicazione {
-    // la nostra struttura non contiene nulla per il momento\
+fn main() -> eframe::Result<()>{
+
+    // opzioni per la finestra 
+    let option = eframe::NativeOptions{
+        ..Default::default()
+    };
+    let applicazione = Application{};
+    eframe::run_native("Selettore Accessi rete ", option,  
+        Box::new(|_cc| Ok(Box::new(applicazione))))
 }
 
-// una volta importato eframe con il modulo egui
-// implementiamolo nella struttura
-impl eframe::App for NomeApplicazione {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {}
+
+struct Application {
+    // non aggiungiamo nullla per il momento
 }
 
-fn main() -> Result<(), eframe::Error> {
-    let option = eframe::NativeOptions::default();
-    let app = NomeApplicazione {};
-    eframe::run_native("test_applicazione", option, Box::new(|cc| Box::new(app)))
-}
+impl eframe::App for Application {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        
+    }
+} 
+
+
