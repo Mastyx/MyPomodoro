@@ -25,7 +25,7 @@ fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([500.0, 300.0]) // Larghezza 400, altezza 300
-            .with_title("🍅 Pomodoro Widget"),
+            .with_title("Pomodoro Widget"),
         ..Default::default()
     };
 
@@ -33,3 +33,6 @@ fn main() -> Result<(), eframe::Error> {
     let app = PomodoroApp {};
     eframe::run_native("Pomodoro Widget", options, Box::new(|_cc| Box::new(app)))
 }
+
+
+
