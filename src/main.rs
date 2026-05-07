@@ -3,6 +3,7 @@
 use std::default;
 
 use eframe::{egui, wgpu::rwh::AppKitDisplayHandle};
+use egui::{CentralPanel, Context};
 
 mod timer;
 //
@@ -40,6 +41,7 @@ mod timer;
 // struttura dell' applicazione
 fn main() {
     let native_option = eframe::NativeOptions::default();
+
     eframe::run_native(
         "Nome del Applicazione",
         native_option,
@@ -50,8 +52,9 @@ fn main() {
 // struttira della nostra applicazione
 #[derive(Default)]
 struct Application {
-    //
+    testo: String,
 }
+
 impl Application {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         Self::default()
@@ -59,19 +62,45 @@ impl Application {
 }
 impl eframe::App for Application {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        // all'interno di questa funzione inseriamo la parte grafica
+
+        // impostiamo il contenitore principale
         let contenitore = ui.ctx();
-        egui::TopBottomPanel::top("Top panel")
-            .min_height(50.0)
-            .show(contenitore, |ui| {
-                // pulsante per la chiusura
-                if ui.button("Esci").clicked() {};
-            });
+        barra_in_alto(&contenitore);
+        // pannello a sinistra sidebar
         egui::SidePanel::left("SidePanel").show(contenitore, |ui| {
             ui.label("Elemento 1");
             ui.label("Elemento 2");
         });
-        egui::CentralPanel::default().show(contenitore, |ui| {
-            ui.heading("Testo del central panel ");
-        });
+        // pannello centrale
+        pannello_centrale(&contenitore); // abbiamo creato una funzione a parte 
+        //egui::CentralPanel::default().show(contenitore, |ui| {
+        //    ui.heading("Testo del central panel ");
+        //});
     }
+}
+// funzione che
+fn pannello_centrale(contesto: &Context) {
+    let mut testo = String::new();
+    testo = "Testo della pagina centrale della nostra applicazione".to_string();
+    CentralPanel::default().show(contesto, |ui| {
+        ui.heading("Testo contenuto nel pannello centrale ");
+        ui.add(egui::TextEdit::multiline(&mut testo));
+    });
+}
+fn barra_in_alto(contesto: &Context) {
+    // pannello in alto
+    egui::TopBottomPanel::top("Top panel")
+        .min_height(50.0)
+        .show(contesto, |ui| {
+            ui.vertical_centered(|ui| {
+                // pulsante per la chiusura
+                if ui
+                    .button(egui::RichText::new("Esci").size(20.0).strong())
+                    .clicked()
+                {
+                    contesto.send_viewport_cmd(egui::ViewportCommand::Close);
+                };
+            });
+        });
 }
