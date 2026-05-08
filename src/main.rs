@@ -147,5 +147,16 @@ impl Default for Applicazione {
         }
     }
 }
+impl Applicazione {} 
+impl eframe::App for Applicazione {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        
+    }
+}
 
-fn main() {}
+fn main() -> eframe::Result { 
+    let options = eframe::NativeOptions::default();
+    eframe::run_native(Applicazione, options, 
+        Box::new(|_contestocreazione| Ok(Box::new(Applicazione::default()))),
+        )
+}
