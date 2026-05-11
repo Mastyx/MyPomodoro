@@ -109,7 +109,7 @@ mod timer;
 //}
 
 // ---------------------------------------------------------------------
-
+#[derive(Clone, Copy)]
 enum Modalita {
     Concentrazione,
     Pausa,
@@ -147,16 +147,76 @@ impl Default for Applicazione {
         }
     }
 }
-impl Applicazione {} 
-impl eframe::App for Applicazione {
-    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        
+impl Applicazione {
+    fn aggiorna_timer(&mut self, contesto: &Context) {
+        if !self.in_esecuzione {
+            return;
+        }
+
+        let adesso = Instant::now();
+
+        if let Some(precedente) = self.ultimo_aggiornamento {
+            let trascorso = adesso.duration_since(precedente);
+            self.tempo_rimanente = self.tempo_rimanente.saturating_sub(trascorso);
+            if self.tempo_rimanente.is_zero() {
+                self.in_esecuzione = false;
+            }
+        }
+
+        self.ultimo_aggiornamento = Some(adesso);
+
+        contesto.request_repaint_after(Duration::from_millis(500));
+    }
+
+    // cambia modalita e azzera il timer
+    fn cambia_modalita(&mut self, nuova: Modalita) {
+        self.modalita = nuova;
+        self.tempo_rimanente = nuova.durata();
+        self.in_esecuzione = false;
+        self.ultimo_aggiornamento = None;
+    }
+
+    //riporta il timer al valore iniziale
+    fn azzera(&mut self) {
+        self.tempo_rimanente = self.modalita.durata();
+        self.in_esecuzione = false;
+        self.ultimo_aggiornamento = None;
+    }
+    //avvia o mette in pausa il timer
+    fn avvia_o_pausa(&mut self) {
+        self.in_esecuzione = !self.in_esecuzione;
+        if self.in_esecuzione {
+            self.ultimo_aggiornamento = Some(Instant::now());
+        }
+    }
+
+    // formatta il tempo timanente come mm:ss
+    fn tempo_formattato(&self) -> String {
+        let secondi_totali = self.tempo_rimanente.as_secs();
+        let minuti = secondi_totali / 60;
+        let secondi = secondi_totali % 60;
+        format!("{:02}:{:02}", minuti, secondi)
     }
 }
 
-fn main() -> eframe::Result { 
+impl eframe::App for Applicazione {
+    fn ui(&mut self, contesto: &mut egui::Ui, _finestra: &mut eframe::Frame) {
+        // qui gli elementi della gui
+        CentralPanel::default().show(contesto, |pannello| {
+            pannello.add_space(10.0);
+
+            // riga di selezione Modalita
+
+            pannello.separator();
+        });
+    }
+}
+
+fn main() -> eframe::Result {
     let options = eframe::NativeOptions::default();
-    eframe::run_native(Applicazione, options, 
+    eframe::run_native(
+        "Test di applicazione",
+        options,
         Box::new(|_contestocreazione| Ok(Box::new(Applicazione::default()))),
-        )
+    )
 }
