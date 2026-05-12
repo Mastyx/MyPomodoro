@@ -6,7 +6,7 @@ use std::{
 };
 
 use eframe::{egui, wgpu::rwh::AppKitDisplayHandle};
-use egui::{CentralPanel, Context};
+use egui::{CentralPanel, Context, RichText};
 
 mod timer;
 //
@@ -109,7 +109,7 @@ mod timer;
 //}
 
 // ---------------------------------------------------------------------
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Modalita {
     Concentrazione,
     Pausa,
@@ -199,21 +199,86 @@ impl Applicazione {
     }
 }
 
+// punto di ingesso del interfaccia grafica
 impl eframe::App for Applicazione {
-    fn ui(&mut self, contesto: &mut egui::Ui, _finestra: &mut eframe::Frame) {
-        // qui gli elementi della gui
-        CentralPanel::default().show(contesto, |pannello| {
-            pannello.add_space(10.0);
+    fn ui(&mut self, pannello: &mut egui::Ui, _finestra: &mut eframe::Frame) {
+        // senza Context
+        if self.in_esecuzione {
+            let adesso = Instant::now();
+            if let Some(precedente) = self.ultimo_aggiornamento {
+                let trascorso = adesso.duration_since(precedente);
+                self.tempo_rimanente = self.tempo_rimanente.saturating_sub(trascorso);
+                if self.tempo_rimanente.is_zero() {
+                    self.in_esecuzione = false;
+                }
+            }
+            self.ultimo_aggiornamento = Some(adesso);
+            pannello
+                .ctx()
+                .request_repaint_after(Duration::from_millis(500));
+        }
 
-            // riga di selezione Modalita
+        pannello.add_space(10.0);
 
-            pannello.separator();
+        //selezione modalita
+        pannello.horizontal(|riga| {
+            for modalita in [Modalita::Concentrazione, Modalita::Pausa] {
+                let selezionata = self.modalita == modalita;
+                if riga
+                    .selectable_label(selezionata, RichText::new(modalita.etichetta()).size(18.0))
+                    .clicked()
+                    && !selezionata
+                {
+                    self.cambia_modalita(modalita);
+                }
+            }
+        });
+        pannello.add_space(8.0);
+        pannello.separator();
+        pannello.add_space(8.0);
+
+        // timer grande
+        let testo_timer = self.tempo_formattato();
+        pannello.vertical_centered(|centro| {
+            centro.label(
+                // settimo il font size
+                RichText::new(testo_timer).size(48.0).strong(),
+            );
+        });
+        pannello.add_space(10.0);
+
+        //pulsanti
+        pannello.vertical_centered(|centro| {
+            // etichetta del pulsante settata a seconda dello stato se in esecuzione o meno
+            let etichetta_pulsante = if self.in_esecuzione {
+                "⏸️ PAUSA"
+            } else {
+                "▶️ AVVIA"
+            };
+
+            if centro
+                .button(RichText::new(etichetta_pulsante).size(16.0))
+                .clicked()
+            {
+                self.avvia_o_pausa();
+            }
+            centro.add_space(4.0);
+            if centro.small_button("↺ Reset").clicked() {
+                self.azzera();
+            }
         });
     }
 }
 
 fn main() -> eframe::Result {
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_title("Pomodoro")
+            .with_inner_size([420.0, 580.0])
+            .with_min_inner_size([360.0, 500.0])
+            .with_resizable(true),
+        ..Default::default()
+    };
     eframe::run_native(
         "Test di applicazione",
         options,
