@@ -8,6 +8,7 @@ use std::{
 use eframe::{egui, wgpu::rwh::AppKitDisplayHandle};
 use egui::{CentralPanel, Context, RichText};
 
+use rodio::{OutputStream, Sink, Source, source::SineWave};
 mod timer;
 //
 //struct PomodoroApp {
@@ -159,7 +160,12 @@ impl Applicazione {
             let trascorso = adesso.duration_since(precedente);
             self.tempo_rimanente = self.tempo_rimanente.saturating_sub(trascorso);
             if self.tempo_rimanente.is_zero() {
-                self.in_esecuzione = false;
+                suona_beep();
+                match self.modalita {
+                    Modalita::Concentrazione => self.cambia_modalita(Modalita::Pausa),
+                    Modalita::Pausa => self.cambia_modalita(Modalita::Concentrazione),
+                }
+                self.avvia_o_pausa();
             }
         }
 
@@ -210,6 +216,7 @@ impl eframe::App for Applicazione {
                 self.tempo_rimanente = self.tempo_rimanente.saturating_sub(trascorso);
                 if self.tempo_rimanente.is_zero() {
                     self.in_esecuzione = false;
+                    suona_beep();
                 }
             }
             self.ultimo_aggiornamento = Some(adesso);
@@ -223,9 +230,10 @@ impl eframe::App for Applicazione {
         //selezione modalita
         pannello.horizontal(|riga| {
             for modalita in [Modalita::Concentrazione, Modalita::Pausa] {
+                riga.add_space(20.0);
                 let selezionata = self.modalita == modalita;
                 if riga
-                    .selectable_label(selezionata, RichText::new(modalita.etichetta()).size(18.0))
+                    .selectable_label(selezionata, RichText::new(modalita.etichetta()).size(20.0))
                     .clicked()
                     && !selezionata
                 {
@@ -233,6 +241,7 @@ impl eframe::App for Applicazione {
                 }
             }
         });
+
         pannello.add_space(8.0);
         pannello.separator();
         pannello.add_space(8.0);
@@ -242,7 +251,7 @@ impl eframe::App for Applicazione {
         pannello.vertical_centered(|centro| {
             centro.label(
                 // settimo il font size
-                RichText::new(testo_timer).size(48.0).strong(),
+                RichText::new(testo_timer).size(75.0).strong(),
             );
         });
         pannello.add_space(10.0);
@@ -257,25 +266,47 @@ impl eframe::App for Applicazione {
             };
 
             if centro
-                .button(RichText::new(etichetta_pulsante).size(16.0))
+                .button(RichText::new(etichetta_pulsante).size(40.0))
                 .clicked()
             {
                 self.avvia_o_pausa();
+                suona_beep();
             }
             centro.add_space(4.0);
-            if centro.small_button("↺ Reset").clicked() {
+            if centro
+                .small_button(RichText::new("↺ Reset").size(30.0))
+                .clicked()
+            {
                 self.azzera();
             }
         });
     }
 }
 
+// funzione per audio
+fn suona_beep() {
+    //apre il dispositivo audio del sistema
+    let Ok((_flusso, gestore_flusso)) = rodio::OutputStream::try_default() else {
+        return;
+    };
+    let Ok(riproduttore) = Sink::try_new(&gestore_flusso) else {
+        return;
+    };
+
+    // onda sinusoidale a 880 per 600mlls
+    let suono = SineWave::new(880.0)
+        .take_duration(Duration::from_millis(600))
+        .amplify(0.3);
+    riproduttore.append(suono);
+    riproduttore.sleep_until_end();
+}
+
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Pomodoro")
-            .with_inner_size([420.0, 580.0])
-            .with_min_inner_size([360.0, 500.0])
+            .with_inner_size([360.0, 380.0])
+            .with_min_inner_size([360.0, 300.0])
             .with_resizable(true),
         ..Default::default()
     };

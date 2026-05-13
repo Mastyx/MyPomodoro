@@ -7,4 +7,5 @@ edition = "2024"
 chrono = "0.4.44"
 eframe = "0.34.1"
 egui = "0.34.1"
+rodio = "0.19"
 serde = { version = "1.0.228", features = ["derive"] }
