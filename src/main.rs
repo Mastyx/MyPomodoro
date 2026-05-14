@@ -126,8 +126,8 @@ impl Modalita {
     //durata associata alla modalita
     fn durata(self) -> Duration {
         match self {
-            Modalita::Concentrazione => Duration::from_secs(25 * 60),
-            Modalita::Pausa => Duration::from_secs(5 * 60),
+            Modalita::Concentrazione => Duration::from_secs(1 * 60),
+            Modalita::Pausa => Duration::from_secs(1 * 60),
         }
     }
 }
@@ -160,7 +160,8 @@ impl Applicazione {
             let trascorso = adesso.duration_since(precedente);
             self.tempo_rimanente = self.tempo_rimanente.saturating_sub(trascorso);
             if self.tempo_rimanente.is_zero() {
-                suona_beep();
+                // aspetta che il thread audio sia partito
+                std::thread::sleep(Duration::from_millis(200));
                 match self.modalita {
                     Modalita::Concentrazione => self.cambia_modalita(Modalita::Pausa),
                     Modalita::Pausa => self.cambia_modalita(Modalita::Concentrazione),
@@ -209,21 +210,12 @@ impl Applicazione {
 impl eframe::App for Applicazione {
     fn ui(&mut self, pannello: &mut egui::Ui, _finestra: &mut eframe::Frame) {
         // senza Context
-        if self.in_esecuzione {
-            let adesso = Instant::now();
-            if let Some(precedente) = self.ultimo_aggiornamento {
-                let trascorso = adesso.duration_since(precedente);
-                self.tempo_rimanente = self.tempo_rimanente.saturating_sub(trascorso);
-                if self.tempo_rimanente.is_zero() {
-                    self.in_esecuzione = false;
-                    suona_beep();
-                }
-            }
-            self.ultimo_aggiornamento = Some(adesso);
-            pannello
-                .ctx()
-                .request_repaint_after(Duration::from_millis(500));
-        }
+        self.aggiorna_timer(pannello.ctx());
+
+        // cambia colore del pannello
+        pannello
+            .painter()
+            .rect_filled(pannello.max_rect(), 0.0, colore_sfondo(self.modalita));
 
         pannello.add_space(10.0);
 
@@ -270,35 +262,30 @@ impl eframe::App for Applicazione {
                 .clicked()
             {
                 self.avvia_o_pausa();
-                suona_beep();
             }
             centro.add_space(4.0);
             if centro
-                .small_button(RichText::new("↺ Reset").size(30.0))
+                .small_button(RichText::new("↺ Reset").size(20.0))
                 .clicked()
             {
                 self.azzera();
+            }
+            centro.add_space(10.0);
+
+            // button exit application
+            if centro.button(RichText::new("Exit").size(30.0)).clicked() {
+                centro.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
             }
         });
     }
 }
 
-// funzione per audio
-fn suona_beep() {
-    //apre il dispositivo audio del sistema
-    let Ok((_flusso, gestore_flusso)) = rodio::OutputStream::try_default() else {
-        return;
-    };
-    let Ok(riproduttore) = Sink::try_new(&gestore_flusso) else {
-        return;
-    };
-
-    // onda sinusoidale a 880 per 600mlls
-    let suono = SineWave::new(880.0)
-        .take_duration(Duration::from_millis(600))
-        .amplify(0.3);
-    riproduttore.append(suono);
-    riproduttore.sleep_until_end();
+// settiamo dei colori per lo sfondo
+fn colore_sfondo(modalita: Modalita) -> egui::Color32 {
+    match modalita {
+        Modalita::Concentrazione => egui::Color32::from_rgb(180, 40, 40),
+        Modalita::Pausa => egui::Color32::from_rgb(40, 140, 80),
+    }
 }
 
 fn main() -> eframe::Result {
