@@ -283,8 +283,8 @@ impl eframe::App for Applicazione {
 // settiamo dei colori per lo sfondo
 fn colore_sfondo(modalita: Modalita) -> egui::Color32 {
     match modalita {
-        Modalita::Concentrazione => egui::Color32::from_rgb(180, 40, 40),
-        Modalita::Pausa => egui::Color32::from_rgb(40, 140, 80),
+        Modalita::Concentrazione => egui::Color32::from_rgba_unmultiplied(180, 40, 40, 150),
+        Modalita::Pausa => egui::Color32::from_rgba_unmultiplied(40, 140, 80, 150),
     }
 }
 
@@ -294,9 +294,11 @@ fn main() -> eframe::Result {
             .with_title("Pomodoro")
             .with_inner_size([360.0, 380.0])
             .with_min_inner_size([360.0, 300.0])
-            .with_resizable(true),
+            .with_resizable(true)
+            .with_transparent(true),
         ..Default::default()
     };
+
     eframe::run_native(
         "Test di applicazione",
         options,
